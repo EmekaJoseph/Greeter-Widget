@@ -9,6 +9,7 @@ import 'avatar.dart';
 import 'card_border.dart';
 import 'countdown.dart';
 import 'greetings.dart';
+import 'my_quotes.dart';
 import 'share_card.dart';
 import 'special_days.dart';
 import 'quotes.dart';
@@ -182,6 +183,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   bool _autoNight = false;
   Countdown? _countdown;
   CardBorder _border = CardBorder.defaults;
+  MyQuotes _myQuotes = const MyQuotes();
 
   /// The focus as the widget shows it: only a focus saved for today counts.
   String get _previewFocus {
@@ -240,7 +242,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     if (special != null && _specialQuoteHiddenDay != focusDayKey(now)) {
       return special.quote;
     }
-    return currentQuote(quotes, _shuffle, now);
+    return currentQuote(_myQuotes.active, _shuffle, now);
   }
 
   Future<void> _pickBirthday() async {
@@ -330,6 +332,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       WidgetKeys.autoNight,
     );
     final look = await WidgetAppearance.load();
+    final myQuotes = await MyQuotes.load();
     final avatarPath = await loadAvatarPath();
     if (!mounted) return;
     setState(() {
@@ -338,6 +341,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       _autoNight = autoNight ?? false;
       _countdown = countdown;
       _border = border;
+      _myQuotes = myQuotes;
       _focusController.text = focus ?? '';
       _focusSavedDay = focusDay;
       _showFocus = showFocus ?? defaultShowFocus;
@@ -347,7 +351,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       _avatarPath = avatarPath;
     });
 
-    await saveQuotesForWidget();
+    await saveQuotesForWidget(myQuotes);
     await saveGreetingsForWidget();
     await saveSpecialDaysForWidget(birthday);
     await saveNightThemeForWidget();
@@ -415,6 +419,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       await HomeWidget.updateWidget(androidName: androidWidgetName);
       return;
     }
+    final quotes = _myQuotes.active;
     final shown = currentQuote(quotes, _shuffle, now);
     var next = _shuffle + 1;
     while (quotes.length > 1 &&
@@ -425,6 +430,28 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     setState(() => _shuffle = next);
     await HomeWidget.saveWidgetData<int>(WidgetKeys.quoteShuffle, _shuffle);
     await HomeWidget.updateWidget(androidName: androidWidgetName);
+  }
+
+  void _openMyQuotes() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) =>
+            MyQuotesPage(initial: _myQuotes, onChanged: _setMyQuotes),
+      ),
+    );
+  }
+
+  Future<void> _setMyQuotes(MyQuotes mine) async {
+    setState(() => _myQuotes = mine);
+    await mine.save();
+    await HomeWidget.updateWidget(androidName: androidWidgetName);
+  }
+
+  String _myQuotesSubtitle() {
+    final count = _myQuotes.quotes.length;
+    if (count == 0) return 'Add your own quotes to the mix';
+    final quotes = count == 1 ? '1 quote' : '$count quotes';
+    return _myQuotes.onlyMine ? '$quotes · showing only yours' : quotes;
   }
 
   Future<void> _applyLook(WidgetAppearance look) async {
@@ -561,6 +588,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           ],
         ),
         const SizedBox(height: 16),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          onTap: _openMyQuotes,
+          leading: const Icon(Icons.edit_note),
+          title: const Text('My quotes'),
+          subtitle: Text(_myQuotesSubtitle()),
+          trailing: const Icon(Icons.chevron_right),
+        ),
         ListTile(
           contentPadding: EdgeInsets.zero,
           onTap: _editCountdown,

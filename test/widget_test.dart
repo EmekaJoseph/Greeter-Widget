@@ -4,6 +4,7 @@ import 'package:phone_widget/main.dart';
 import 'package:phone_widget/card_border.dart';
 import 'package:phone_widget/countdown.dart';
 import 'package:phone_widget/greetings.dart';
+import 'package:phone_widget/my_quotes.dart';
 import 'package:phone_widget/quotes.dart';
 import 'package:phone_widget/share_card.dart';
 import 'package:phone_widget/special_days.dart';
@@ -208,11 +209,57 @@ void main() {
   });
 
   test('every quote is short enough for the widget', () {
-    expect(quotes, isNotEmpty);
-    for (final quote in quotes) {
+    expect(builtInQuotes, isNotEmpty);
+    for (final quote in builtInQuotes) {
       expect(quote.trim(), isNotEmpty);
-      expect(quote.length, lessThanOrEqualTo(110), reason: quote);
+      expect(quote.length, lessThanOrEqualTo(maxQuoteLength), reason: quote);
     }
+  });
+
+  test('my quotes mix in, or replace the built-in ones when asked', () {
+    const none = MyQuotes();
+    expect(none.active, builtInQuotes);
+    // "Only mine" with nothing added still leaves something to show.
+    expect(none.copyWith(onlyMine: true).active, builtInQuotes);
+
+    const mine = MyQuotes(quotes: ['Mine one', 'Mine two']);
+    expect(mine.active, [...builtInQuotes, 'Mine one', 'Mine two']);
+    expect(mine.copyWith(onlyMine: true).active, ['Mine one', 'Mine two']);
+  });
+
+  testWidgets('my quotes page adds, edits and removes quotes', (tester) async {
+    MyQuotes? saved;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MyQuotesPage(
+          initial: const MyQuotes(),
+          onChanged: (mine) => saved = mine,
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Add quote'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), '  Keep going.  ');
+    await tester.pump();
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(saved?.quotes, ['Keep going.']);
+
+    await tester.tap(find.text('Keep going.'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Keep going, no stop.');
+    await tester.pump();
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(saved?.quotes, ['Keep going, no stop.']);
+
+    await tester.tap(find.byTooltip('Remove quote'));
+    await tester.pumpAndSettle();
+    expect(saved?.quotes, isEmpty);
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    expect(saved?.quotes, ['Keep going, no stop.']);
   });
 
   test('theme presets are distinct and Mint is the default look', () {
@@ -247,6 +294,7 @@ void main() {
     );
 
     await tester.enterText(find.byType(TextField), '  Emeka  ');
+    await tester.pump();
     await tester.pump();
     await tester.tap(find.text('Continue'));
     await tester.pump();

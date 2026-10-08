@@ -28,6 +28,8 @@ abstract final class WidgetKeys {
   static const focusDay = 'focusDay';
   static const showFocus = 'showFocus';
   static const quotes = 'quotes';
+  static const customQuotes = 'customQuotes';
+  static const onlyMyQuotes = 'onlyMyQuotes';
   static const quoteShuffle = 'quoteShuffle';
   static const cardColor = 'cardColor';
   static const cardOpacity = 'cardOpacity';

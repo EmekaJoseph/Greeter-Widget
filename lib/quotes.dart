@@ -4,8 +4,11 @@ import 'package:home_widget/home_widget.dart';
 
 import 'widget_store.dart';
 
-/// Keep each quote under about 110 characters or it gets cut off on the widget.
-const List<String> quotes = [
+/// Longer quotes get cut off on the widget.
+const int maxQuoteLength = 110;
+
+/// Keep each quote under [maxQuoteLength] characters.
+const List<String> builtInQuotes = [
   'Small small, you go reach where you dey go.',
 
   'No be how fast you start, na how well you finish.',
@@ -109,10 +112,58 @@ const List<String> quotes = [
   'One day, you go look back and thank yourself say you never give up.',
 ];
 
+/// Quotes the user wrote, and whether to show only those.
+class MyQuotes {
+  const MyQuotes({this.quotes = const [], this.onlyMine = false});
+
+  final List<String> quotes;
+
+  /// Ignored while [quotes] is empty, so the widget always has something to show.
+  final bool onlyMine;
+
+  /// The quotes the widget and the preview pick from.
+  List<String> get active =>
+      onlyMine && quotes.isNotEmpty ? quotes : [...builtInQuotes, ...quotes];
+
+  MyQuotes copyWith({List<String>? quotes, bool? onlyMine}) => MyQuotes(
+    quotes: quotes ?? this.quotes,
+    onlyMine: onlyMine ?? this.onlyMine,
+  );
+
+  static Future<MyQuotes> load() async {
+    final raw = await HomeWidget.getWidgetData<String>(WidgetKeys.customQuotes);
+    final onlyMine = await HomeWidget.getWidgetData<bool>(
+      WidgetKeys.onlyMyQuotes,
+    );
+    var quotes = <String>[];
+    if (raw != null) {
+      try {
+        quotes = [
+          for (final quote in jsonDecode(raw) as List)
+            if (quote is String && quote.trim().isNotEmpty) quote,
+        ];
+      } on FormatException {
+        // Unreadable; start over.
+      }
+    }
+    return MyQuotes(quotes: quotes, onlyMine: onlyMine ?? false);
+  }
+
+  /// Saves these settings and hands the resulting quotes to the widget.
+  Future<void> save() async {
+    await HomeWidget.saveWidgetData<String>(
+      WidgetKeys.customQuotes,
+      jsonEncode(quotes),
+    );
+    await HomeWidget.saveWidgetData<bool>(WidgetKeys.onlyMyQuotes, onlyMine);
+    await saveQuotesForWidget(this);
+  }
+}
+
 /// Hands the quotes to the home screen widget, which picks from them on its own.
-Future<void> saveQuotesForWidget() {
+Future<void> saveQuotesForWidget(MyQuotes mine) {
   return HomeWidget.saveWidgetData<String>(
     WidgetKeys.quotes,
-    jsonEncode(quotes),
+    jsonEncode(mine.active),
   );
 }
