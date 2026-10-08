@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Text is drawn by GreeterWidget.kt into the ImageViews below, so it can use the Outfit font. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- The card wraps its content so a tall widget slot doesn't leave empty card above and below. -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical">
+
+        <!-- An ImageView so the rounded background can be tinted and faded via RemoteViews. -->
+        <ImageView
+            android:id="@+id/widget_background"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:importantForAccessibility="no"
+            android:scaleType="fitXY"
+            android:src="@drawable/widget_background" />
+
+        <!-- Padding, avatar size and its margin must match the constants in GreeterWidget.kt. -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="20dp"
+            android:paddingVertical="12dp">
+
+            <!-- Greeting and name, with the profile picture beside them on the right. -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <ImageView
+                        android:id="@+id/widget_greeting"
+                        style="@style/WidgetText" />
+
+                    <ImageView
+                        android:id="@+id/widget_name"
+                        style="@style/WidgetText" />
+                </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/widget_avatar"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="12dp"
+                    android:importantForAccessibility="no"
+                    android:scaleType="fitCenter" />
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/widget_quote"
+                style="@style/WidgetText"
+                android:layout_marginTop="6dp" />
+
+            <ImageView
+                android:id="@+id/widget_countdown_divider"
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="14dp"
+                android:layout_marginBottom="10dp"
+                android:background="#400F2A24"
+                android:importantForAccessibility="no"
+                android:visibility="gone" />
+
+            <ImageView
+                android:id="@+id/widget_countdown"
+                style="@style/WidgetText"
+                android:visibility="gone" />
+
+            <ImageView
+                android:id="@+id/widget_divider"
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="14dp"
+                android:layout_marginBottom="10dp"
+                android:background="#400F2A24"
+                android:importantForAccessibility="no" />
+
+            <ImageView
+                android:id="@+id/widget_focus_label"
+                style="@style/WidgetText" />
+
+            <ImageView
+                android:id="@+id/widget_focus"
+                style="@style/WidgetText"
+                android:layout_marginTop="2dp" />
+        </LinearLayout>
+    </FrameLayout>
+</FrameLayout>

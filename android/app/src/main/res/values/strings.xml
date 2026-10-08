@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_description">A greeting, a fresh quote and your focus for the day</string>
+    <string name="widget_preview_greeting">Good morning</string>
+    <string name="widget_preview_quote">"Small small, you go reach where you dey go."</string>
+</resources>

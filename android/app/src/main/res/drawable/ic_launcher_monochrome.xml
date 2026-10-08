@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Single-colour version for Android 13+ themed icons: the bubble with the sun cut out. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M42,30 H66 A14,14 0 0,1 80,44 V58 A14,14 0 0,1 66,72 H48 L37,82 L40,72 H42 A14,14 0 0,1 28,58 V44 A14,14 0 0,1 42,30 Z M44,62 A10,10 0 0,1 64,62 Z" />
+</vector>
