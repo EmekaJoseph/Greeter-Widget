@@ -9,6 +9,7 @@ import 'avatar.dart';
 import 'card_border.dart';
 import 'countdown.dart';
 import 'greetings.dart';
+import 'morning_notification.dart';
 import 'my_quotes.dart';
 import 'share_card.dart';
 import 'special_days.dart';
@@ -184,6 +185,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   Countdown? _countdown;
   CardBorder _border = CardBorder.defaults;
   MyQuotes _myQuotes = const MyQuotes();
+  NotificationSettings _notify = const NotificationSettings();
 
   /// The focus as the widget shows it: only a focus saved for today counts.
   String get _previewFocus {
@@ -333,6 +335,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     );
     final look = await WidgetAppearance.load();
     final myQuotes = await MyQuotes.load();
+    final notify = await NotificationSettings.load();
     final avatarPath = await loadAvatarPath();
     if (!mounted) return;
     setState(() {
@@ -342,6 +345,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       _countdown = countdown;
       _border = border;
       _myQuotes = myQuotes;
+      _notify = notify;
       _focusController.text = focus ?? '';
       _focusSavedDay = focusDay;
       _showFocus = showFocus ?? defaultShowFocus;
@@ -356,6 +360,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     await saveSpecialDaysForWidget(birthday);
     await saveNightThemeForWidget();
     await refreshWidget();
+    await rescheduleNotification();
   }
 
   Future<void> _setGreetingStyle(GreetingStyle style) async {
@@ -445,6 +450,39 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     setState(() => _myQuotes = mine);
     await mine.save();
     await HomeWidget.updateWidget(androidName: androidWidgetName);
+  }
+
+  Future<void> _setNotify(bool on) async {
+    if (on && !await requestNotificationPermission()) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Allow notifications for GREETER to get your daily greeting.',
+          ),
+          action: SnackBarAction(
+            label: 'Settings',
+            onPressed: openNotificationSettings,
+          ),
+        ),
+      );
+      return;
+    }
+    final notify = _notify.copyWith(on: on);
+    setState(() => _notify = notify);
+    await notify.save();
+  }
+
+  Future<void> _pickNotifyTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      helpText: 'Notification time',
+      initialTime: _notify.time,
+    );
+    if (picked == null) return;
+    final notify = _notify.copyWith(time: picked);
+    setState(() => _notify = notify);
+    await notify.save();
   }
 
   String _myQuotesSubtitle() {
@@ -552,6 +590,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     );
   }
 
+  /// Thin line between settings.
+  static const _divider = Divider(height: 16, thickness: 0.5);
+
   Widget _settings(BuildContext context, TextTheme textTheme) {
     return ListView(
       // Extra bottom space so the last buttons clear the navigation bar.
@@ -587,7 +628,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        _divider,
         ListTile(
           contentPadding: EdgeInsets.zero,
           onTap: _openMyQuotes,
@@ -596,6 +637,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           subtitle: Text(_myQuotesSubtitle()),
           trailing: const Icon(Icons.chevron_right),
         ),
+        _divider,
         ListTile(
           contentPadding: EdgeInsets.zero,
           onTap: _editCountdown,
@@ -610,6 +652,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   onPressed: _clearCountdown,
                 ),
         ),
+        _divider,
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           title: const Text("Show Today's focus"),
@@ -642,7 +685,29 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             ),
           ),
         ],
-        const SizedBox(height: 24),
+        _divider,
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          secondary: const Icon(Icons.notifications_outlined),
+          title: const Text('Daily notification'),
+          subtitle: Text(
+            _notify.on
+                ? 'Your greeting and quote at ${_notify.time.format(context)}'
+                : 'Get your greeting and quote as a notification',
+          ),
+          value: _notify.on,
+          onChanged: _setNotify,
+        ),
+        if (_notify.on)
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.schedule),
+            title: const Text('Notification time'),
+            subtitle: Text(_notify.time.format(context)),
+            onTap: _pickNotifyTime,
+          ),
+        _divider,
+        const SizedBox(height: 16),
         Text('Appearance', style: textTheme.titleLarge),
         const SizedBox(height: 8),
         SwitchListTile(
@@ -658,6 +723,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             on ? GreetingStyle.pidgin : GreetingStyle.english,
           ),
         ),
+        _divider,
         ListTile(
           contentPadding: EdgeInsets.zero,
           onTap: _pickBirthday,
@@ -676,6 +742,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   onPressed: () => _setBirthday(null),
                 ),
         ),
+        _divider,
         ListTile(
           contentPadding: EdgeInsets.zero,
           onTap: _changeAvatar,
@@ -696,7 +763,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   onPressed: _removeAvatar,
                 ),
         ),
-        const SizedBox(height: 16),
+        _divider,
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           title: const Text('Night theme in the evening'),
@@ -707,6 +774,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           value: _autoNight,
           onChanged: _setAutoNight,
         ),
+        _divider,
         Text('Theme', style: textTheme.titleSmall),
         const SizedBox(height: 12),
         SizedBox(
@@ -725,7 +793,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             },
           ),
         ),
-        const SizedBox(height: 16),
+        _divider,
         Text(
           'Fine-tune',
           style: textTheme.titleSmall?.copyWith(
@@ -738,7 +806,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           color: _look.cardColor,
           onChanged: (c) => _applyLook(_look.copyWith(cardColor: c)),
         ),
-        const SizedBox(height: 8),
+        _divider,
         Text(
           'Background opacity: ${_look.opacityPercent}%',
           style: textTheme.titleSmall,
@@ -753,19 +821,21 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           ),
           onChangeEnd: (_) => _applyLook(_look),
         ),
+        _divider,
         _ColorSetting(
           label: 'Text color',
           suggestions: textColorChoices,
           color: _look.textColor,
           onChanged: (c) => _applyLook(_look.copyWith(textColor: c)),
         ),
+        _divider,
         _ColorSetting(
           label: 'Accent color (quote and label)',
           suggestions: accentColorChoices,
           color: _look.accentColor,
           onChanged: (c) => _applyLook(_look.copyWith(accentColor: c)),
         ),
-        const SizedBox(height: 8),
+        _divider,
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           title: const Text('Gradient border'),
@@ -833,7 +903,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         ),
         const SizedBox(height: 32),
         Text(
-          'Designed by Proffictech',
+          'Designed by Proffictech (+2348139590011)',
           textAlign: TextAlign.center,
           style: textTheme.bodySmall?.copyWith(
             color: Theme.of(context).colorScheme.onSurfaceVariant,

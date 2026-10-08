@@ -221,6 +221,23 @@ class GreeterWidget : HomeWidgetProvider() {
         onUpdate(context, appWidgetManager, intArrayOf(appWidgetId))
     }
 
+    /**
+     * The greeting and quote the widget shows at [now], as a notification's title and text.
+     * Null until the user has set their name.
+     */
+    internal fun greetingMessage(prefs: SharedPreferences, now: Calendar): Pair<String, String?>? {
+        val name = prefs.getString("name", null)?.takeIf { it.isNotBlank() } ?: return null
+        // Default must match GreetingStyle in lib/widget_store.dart.
+        val style = prefs.getString("greetingStyle", null) ?: "pidgin"
+        val special = specialDayFor(prefs, now)
+        val greeting = if (special != null) {
+            special.optString(style).ifBlank { special.optString("english") }
+        } else {
+            greetingFor(now, prefs.getString("greetings", null), style)
+        }
+        return "$greeting $name" to shownQuote(prefs, now)
+    }
+
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action == ACTION_NEXT_QUOTE) {
             showNextQuote(context)

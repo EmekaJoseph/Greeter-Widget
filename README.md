@@ -14,6 +14,7 @@ Built with Flutter. The widget itself is drawn natively in Kotlin, so it keeps u
 - **Special days.** Your birthday, New Year's Day (1 Jan), Independence Day (1 Oct) and Christmas (25 Dec) get their own greeting and quote. If your birthday falls on a holiday, the birthday greeting wins.
 - **Today's focus (optional).** Write one thing you want to get done today. It resets every morning at 5:00. Tap the focus area on the widget to edit it in the app.
 - **Countdown (optional).** Name an event and pick a date, e.g. *"Lagos trip · 12 days to go"*. It shows *Tomorrow* and *Today!* as the day gets close, and disappears once the day has passed.
+- **Daily notification (optional).** Get the same greeting and quote as a notification at a time you choose (7:00 by default). Turn it on or off in the app. It's worked out when it arrives, so it always matches the widget.
 - **Profile picture.** Choose a photo from your gallery to show in a circle next to your name.
 - **Resizable.** The default size is 4×2 cells. You can resize it in both directions and the text adjusts to fit.
 
@@ -87,6 +88,7 @@ lib/
   greetings.dart      Greeting lists (Pidgin and English)
   quotes.dart         Built-in quotes and storage for the user's own
   my_quotes.dart      "My quotes" page
+  morning_notification.dart  Daily notification settings
   special_days.dart   Birthday and holiday greetings
   countdown.dart      Countdown event storage and "days to go" logic
   card_border.dart    Gradient border styles and painter
@@ -94,6 +96,7 @@ lib/
   share_card.dart     "Share quote" image card
 android/app/src/main/
   kotlin/com/proffictech/greeter/GreeterWidget.kt   Native widget renderer
+  kotlin/com/proffictech/greeter/MorningNotification.kt  Daily notification alarm
   res/layout/greeter_widget.xml                     Widget layout
   res/xml/greeter_widget_info.xml                   Widget size and update settings
 assets/fonts/         Outfit font (SIL Open Font License, see OFL.txt)
