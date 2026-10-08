@@ -56,7 +56,7 @@ object MorningNotification {
         val manager = context.getSystemService(NotificationManager::class.java)
         if (!manager.areNotificationsEnabled()) return
         val prefs = HomeWidgetPlugin.getData(context)
-        val (title, quote) = GreeterWidget().greetingMessage(prefs, Calendar.getInstance()) ?: return
+        val (title, quote) = GreeterWidget().greetingMessage(context, prefs, Calendar.getInstance()) ?: return
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             manager.createNotificationChannel(

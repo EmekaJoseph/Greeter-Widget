@@ -89,7 +89,7 @@ void main() {
       specialDayFor(DateTime(2026, 12, 25, 9), null)?.pidgin,
       'Merry Christmas o,',
     );
-    expect(specialDayFor(DateTime(2026, 12, 26, 4), null)?.monthDay, '12-25');
+    expect(specialDayFor(DateTime(2026, 12, 26, 4), null)?.date, '12-25');
     expect(specialDayFor(DateTime(2026, 12, 25, 4), null), isNull);
     expect(specialDayFor(DateTime(2026, 3, 14, 9), null), isNull);
     expect(
@@ -100,8 +100,57 @@ void main() {
       specialDayFor(DateTime(2026, 12, 25, 9), '12-25')?.english,
       'Happy birthday,',
     );
+    expect(
+      specialDayFor(DateTime(2026, 6, 12, 9), null)?.pidgin,
+      'Happy Democracy Day o,',
+    );
     expect(longMonthDay('03-14'), '14 March');
     expect(monthDayKey(DateTime(2026, 1, 5)), '01-05');
+  });
+
+  test('calendar holidays get their own greeting, or a general one', () {
+    expect(calendarHoliday('Good Friday').pidgin, 'Blessed Good Friday o,');
+    expect(calendarHoliday('Easter Sunday').english, 'Happy Easter,');
+    expect(calendarHoliday('Easter Monday').english, 'Happy Easter Monday,');
+    expect(calendarHoliday("Mother's Day").english, 'Happy Mothering Sunday,');
+    expect(calendarHoliday("Father's Day").pidgin, "Happy Father's Day o,");
+
+    expect(calendarHoliday('Eid El-Fitr Holiday').pidgin, 'Eid Mubarak o,');
+    expect(calendarHoliday('Id el Kabir').english, 'Eid Mubarak,');
+
+    // Names as they appear in Google's "Holidays in Nigeria".
+    final maulud = calendarHoliday('Id el Maulud (tentative)');
+    expect(maulud.pidgin, 'Happy Id el Maulud o,');
+    expect(maulud.english, 'Happy Id el Maulud,');
+    expect(maulud.quote, calendarHolidayQuote);
+    expect(calendarHoliday('Happy New Month').english, 'Happy New Month,');
+
+    // Built-in days win over the calendar; otherwise the calendar is used.
+    expect(
+      specialDayFor(
+        DateTime(2026, 12, 25, 9),
+        null,
+        calendarTitle: 'Christmas Day',
+      )?.pidgin,
+      'Merry Christmas o,',
+    );
+    expect(
+      specialDayFor(
+        DateTime(2026, 4, 3, 9),
+        null,
+        calendarTitle: 'Good Friday',
+      )?.english,
+      'Blessed Good Friday,',
+    );
+    expect(specialDayFor(DateTime(2026, 4, 3, 9), null), isNull);
+  });
+
+  test('every special day quote is short enough for the widget', () {
+    for (final day in [...holidays, ...calendarGreetings]) {
+      expect(day.quote.length, lessThanOrEqualTo(maxQuoteLength));
+      expect(day.pidgin, endsWith(','));
+      expect(day.english, endsWith(','));
+    }
   });
 
   test('night theme applies from 19:00 to 5:00 only when switched on', () {

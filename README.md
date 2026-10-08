@@ -11,7 +11,8 @@ Built with Flutter. The widget itself is drawn natively in Kotlin, so it keeps u
 - **Pidgin or English.** For example, *"How body this morning,"* or *"Rise and shine,"*. Pidgin is the default.
 - **Quotes.** About 50 short motivational quotes, mostly in Pidgin. A new one appears with each part of the day. Tap the quote on the widget to see another.
 - **Your own quotes.** Add your own lines, like a Bible verse, a family saying or a goal, in **My quotes**. They're mixed in with the built-in quotes, or you can choose to show only yours.
-- **Special days.** Your birthday, New Year's Day (1 Jan), Independence Day (1 Oct) and Christmas (25 Dec) get their own greeting and quote. If your birthday falls on a holiday, the birthday greeting wins.
+- **Special days.** Your birthday and fixed Nigerian days get their own greeting and quote: New Year's Day, Valentine's Day, Workers' Day, Children's Day, Democracy Day, Independence Day, Christmas, Boxing Day and New Year's Eve. If your birthday falls on a holiday, the birthday greeting wins.
+- **Holidays from your calendar (optional).** Days whose dates move each year are read from the phone's holiday calendar: Google's "Holidays in Nigeria", or the one built into TECNO, Infinix and itel phones. Good Friday, Easter, Mothering Sunday, Father's Day, Ramadan and Eid get their own greetings. Any other holiday gets *"Happy {holiday} o,"*. This needs calendar permission and is off until you turn it on.
 - **Today's focus (optional).** Write one thing you want to get done today. It resets every morning at 5:00. Tap the focus area on the widget to edit it in the app.
 - **Countdown (optional).** Name an event and pick a date, e.g. *"Lagos trip · 12 days to go"*. It shows *Tomorrow* and *Today!* as the day gets close, and disappears once the day has passed.
 - **Daily notification (optional).** Get the same greeting and quote as a notification at a time you choose (7:00 by default). Turn it on or off in the app. It's worked out when it arrives, so it always matches the widget.
@@ -97,6 +98,7 @@ lib/
 android/app/src/main/
   kotlin/com/proffictech/greeter/GreeterWidget.kt   Native widget renderer
   kotlin/com/proffictech/greeter/MorningNotification.kt  Daily notification alarm
+  kotlin/com/proffictech/greeter/CalendarHolidays.kt     Reads holidays from the phone's calendar
   res/layout/greeter_widget.xml                     Widget layout
   res/xml/greeter_widget_info.xml                   Widget size and update settings
 assets/fonts/         Outfit font (SIL Open Font License, see OFL.txt)
@@ -112,7 +114,7 @@ Some logic is written twice, once in Dart for the in-app preview and once in Kot
 ### Editing content
 - **Greetings:** edit `lib/greetings.dart`. End each one with a comma, because the name follows on the next line.
 - **Quotes:** edit `lib/quotes.dart`. Keep each quote under about 110 characters or it gets cut off on the widget.
-- **Holidays:** edit the `holidays` list in `lib/special_days.dart`.
+- **Holidays:** edit `holidays` (fixed dates) or `calendarGreetings` (greetings for calendar holidays, matched by name) in `lib/special_days.dart`.
 
 ## Built with
 - [Flutter](https://flutter.dev)

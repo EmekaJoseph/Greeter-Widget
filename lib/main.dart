@@ -180,6 +180,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   bool _focusEdited = false;
   bool _showFocus = defaultShowFocus;
   String? _birthday;
+  bool _calendarOn = false;
+  String? _calendarTitle;
   String? _specialQuoteHiddenDay;
   bool _autoNight = false;
   Countdown? _countdown;
@@ -220,7 +222,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // Tapping the quote on the widget changes it while the app is in the background.
-    if (state == AppLifecycleState.resumed) _reloadShuffle();
+    if (state == AppLifecycleState.resumed) {
+      _reloadShuffle();
+      _reloadCalendarHoliday();
+    }
   }
 
   Future<void> _reloadShuffle() async {
@@ -237,10 +242,40 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     });
   }
 
+  SpecialDay? _specialDay(DateTime now) => specialDayFor(
+    now,
+    _birthday,
+    calendarTitle: _calendarOn ? _calendarTitle : null,
+  );
+
+  Future<void> _reloadCalendarHoliday() async {
+    if (!_calendarOn) return;
+    final title = await calendarHolidayToday();
+    if (mounted) setState(() => _calendarTitle = title);
+  }
+
+  Future<void> _setCalendarOn(bool on) async {
+    if (on && !await requestCalendarPermission()) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Allow calendar access for GREETER to read holidays from it.',
+          ),
+        ),
+      );
+      return;
+    }
+    setState(() => _calendarOn = on);
+    await HomeWidget.saveWidgetData<bool>(WidgetKeys.calendarHolidays, on);
+    await _reloadCalendarHoliday();
+    await HomeWidget.updateWidget(androidName: androidWidgetName);
+  }
+
   /// The quote the widget shows: a special day's quote until it's tapped
   /// away, otherwise one of the normal quotes.
   String? _shownQuote(DateTime now) {
-    final special = specialDayFor(now, _birthday);
+    final special = _specialDay(now);
     if (special != null && _specialQuoteHiddenDay != focusDayKey(now)) {
       return special.quote;
     }
@@ -336,6 +371,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     final look = await WidgetAppearance.load();
     final myQuotes = await MyQuotes.load();
     final notify = await NotificationSettings.load();
+    final calendarOn =
+        await HomeWidget.getWidgetData<bool>(WidgetKeys.calendarHolidays) ??
+        false;
+    final calendarTitle = calendarOn ? await calendarHolidayToday() : null;
     final avatarPath = await loadAvatarPath();
     if (!mounted) return;
     setState(() {
@@ -346,6 +385,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       _border = border;
       _myQuotes = myQuotes;
       _notify = notify;
+      _calendarOn = calendarOn;
+      _calendarTitle = calendarTitle;
       _focusController.text = focus ?? '';
       _focusSavedDay = focusDay;
       _showFocus = showFocus ?? defaultShowFocus;
@@ -358,6 +399,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     await saveQuotesForWidget(myQuotes);
     await saveGreetingsForWidget();
     await saveSpecialDaysForWidget(birthday);
+    await saveCalendarGreetingsForWidget();
     await saveNightThemeForWidget();
     await refreshWidget();
     await rescheduleNotification();
@@ -412,7 +454,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   Future<void> _nextQuote() async {
     final now = DateTime.now();
-    if (specialDayFor(now, _birthday) != null &&
+    if (_specialDay(now) != null &&
         _specialQuoteHiddenDay != focusDayKey(now)) {
       // Leave the special day's quote for the normal ones.
       final today = focusDayKey(now);
@@ -583,7 +625,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         look: effectiveLook(_look, DateTime.now(), autoNight: _autoNight),
         avatarPath: _avatarPath,
         greetingStyle: _greetingStyle,
-        specialDay: specialDayFor(DateTime.now(), _birthday),
+        specialDay: _specialDay(DateTime.now()),
         countdown: _countdown,
         border: _border,
       ),
@@ -741,6 +783,20 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   icon: const Icon(Icons.delete_outline),
                   onPressed: () => _setBirthday(null),
                 ),
+        ),
+        _divider,
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          secondary: const Icon(Icons.calendar_month_outlined),
+          title: const Text('Holidays from my calendar'),
+          subtitle: Text(
+            _calendarOn && _calendarTitle != null
+                ? 'Today: $_calendarTitle'
+                : 'Easter, Eid and more, from "Holidays in Nigeria" '
+                      'in Google Calendar',
+          ),
+          value: _calendarOn,
+          onChanged: _setCalendarOn,
         ),
         _divider,
         ListTile(

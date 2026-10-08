@@ -55,14 +55,14 @@ class GreeterWidget : HomeWidgetProvider() {
         val name = widgetData.getString("name", null)?.takeIf { it.isNotBlank() }
         // Default must match GreetingStyle in lib/widget_store.dart.
         val style = widgetData.getString("greetingStyle", null) ?: "pidgin"
-        val special = specialDayFor(widgetData, now)
+        val special = specialDayFor(context, widgetData, now)
         val greeting = when {
             name == null -> "Open GREETER to set your name"
             special != null -> special.optString(style).ifBlank { special.optString("english") }
             else -> greetingFor(now, widgetData.getString("greetings", null), style)
         }
         val nameCaps = name?.uppercase()
-        val quote = shownQuote(widgetData, now)?.let { "\"$it\"" }
+        val quote = shownQuote(context, widgetData, now)?.let { "\"$it\"" }
         // Default must match defaultShowFocus in lib/widget_store.dart.
         val showFocus = widgetData.getBoolean("showFocus", false)
         val focus = widgetData.getString("focus", null)
@@ -225,17 +225,21 @@ class GreeterWidget : HomeWidgetProvider() {
      * The greeting and quote the widget shows at [now], as a notification's title and text.
      * Null until the user has set their name.
      */
-    internal fun greetingMessage(prefs: SharedPreferences, now: Calendar): Pair<String, String?>? {
+    internal fun greetingMessage(
+        context: Context,
+        prefs: SharedPreferences,
+        now: Calendar,
+    ): Pair<String, String?>? {
         val name = prefs.getString("name", null)?.takeIf { it.isNotBlank() } ?: return null
         // Default must match GreetingStyle in lib/widget_store.dart.
         val style = prefs.getString("greetingStyle", null) ?: "pidgin"
-        val special = specialDayFor(prefs, now)
+        val special = specialDayFor(context, prefs, now)
         val greeting = if (special != null) {
             special.optString(style).ifBlank { special.optString("english") }
         } else {
             greetingFor(now, prefs.getString("greetings", null), style)
         }
-        return "$greeting $name" to shownQuote(prefs, now)
+        return "$greeting $name" to shownQuote(context, prefs, now)
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -250,7 +254,7 @@ class GreeterWidget : HomeWidgetProvider() {
     private fun showNextQuote(context: Context) {
         val prefs = HomeWidgetPlugin.getData(context)
         val now = Calendar.getInstance()
-        if (specialQuoteShowing(prefs, now)) {
+        if (specialQuoteShowing(context, prefs, now)) {
             // Leave the special day's quote for the normal ones.
             prefs.edit().putString("specialQuoteHiddenDay", focusDayKey(now)).commit()
         } else {
@@ -279,25 +283,51 @@ class GreeterWidget : HomeWidgetProvider() {
     // Special days and the night theme are saved by the app; see lib/special_days.dart and
     // lib/widget_store.dart.
 
-    /** Today's birthday or holiday entry, if any. Days start at 5:00, like the greeting. */
-    private fun specialDayFor(prefs: SharedPreferences, now: Calendar): JSONObject? {
-        val today = SimpleDateFormat("MM-dd", Locale.US).format(focusDate(now).time)
+    /**
+     * Today's birthday or holiday entry, if any, then a holiday from the phone's calendar when
+     * that's switched on. Days start at 5:00, like the greeting. Must match specialDayFor() in
+     * lib/special_days.dart.
+     */
+    private fun specialDayFor(context: Context, prefs: SharedPreferences, now: Calendar): JSONObject? {
+        val day = focusDate(now)
+        val today = SimpleDateFormat("MM-dd", Locale.US).format(day.time)
+        val builtIn = jsonObjects(prefs.getString("specialDays", null)).firstOrNull { it.optString("date") == today }
+        if (builtIn != null || !prefs.getBoolean("calendarHolidays", false)) return builtIn
+        return CalendarHolidays.titleOn(context, day)?.let { calendarHoliday(prefs, it) }
+    }
+
+    /** A calendar holiday's greeting and quote. Must match calendarHoliday() in lib/special_days.dart. */
+    private fun calendarHoliday(prefs: SharedPreferences, title: String): JSONObject {
+        val name = title.replace(Regex("""\s*\(.*?\)"""), "").trim()
+        val lower = name.lowercase(Locale.ROOT)
+        jsonObjects(prefs.getString("calendarGreetings", null))
+            .firstOrNull { it.optString("date").let { key -> key.isNotEmpty() && lower.contains(key) } }
+            ?.let { return it }
+        val happy = if (lower.startsWith("happy ")) name else "Happy $name"
+        return JSONObject()
+            .put("pidgin", "$happy o,")
+            .put("english", "$happy,")
+            .put("quote", CALENDAR_HOLIDAY_QUOTE)
+    }
+
+    private fun jsonObjects(raw: String?): List<JSONObject> {
+        if (raw == null) return emptyList()
         return try {
-            val days = JSONArray(prefs.getString("specialDays", null) ?: return null)
-            (0 until days.length()).map { days.getJSONObject(it) }.firstOrNull { it.optString("date") == today }
+            val array = JSONArray(raw)
+            (0 until array.length()).map { array.getJSONObject(it) }
         } catch (e: JSONException) {
-            null
+            emptyList()
         }
     }
 
-    private fun specialQuoteShowing(prefs: SharedPreferences, now: Calendar): Boolean =
-        specialDayFor(prefs, now) != null &&
+    private fun specialQuoteShowing(context: Context, prefs: SharedPreferences, now: Calendar): Boolean =
+        specialDayFor(context, prefs, now) != null &&
             prefs.getString("specialQuoteHiddenDay", null) != focusDayKey(now)
 
     /** A special day's quote until it's tapped away, otherwise one of the normal quotes. */
-    private fun shownQuote(prefs: SharedPreferences, now: Calendar): String? =
-        if (specialQuoteShowing(prefs, now)) {
-            specialDayFor(prefs, now)?.optString("quote")?.takeIf { it.isNotBlank() }
+    private fun shownQuote(context: Context, prefs: SharedPreferences, now: Calendar): String? =
+        if (specialQuoteShowing(context, prefs, now)) {
+            specialDayFor(context, prefs, now)?.optString("quote")?.takeIf { it.isNotBlank() }
                 ?: currentQuote(prefs, now)
         } else {
             currentQuote(prefs, now)
@@ -683,6 +713,7 @@ class GreeterWidget : HomeWidgetProvider() {
         const val NIGHT_START = 19
 
         const val GREETING_SEED = 7919
+        const val CALENDAR_HOLIDAY_QUOTE = "Enjoy today well well, and remember the people wey you love."
         const val ACTION_NEXT_QUOTE = "com.proffictech.greeter.action.NEXT_QUOTE"
         const val ITALIC_SKEW = -0.22f
         const val FOCUS_LABEL = "Today's focus"

@@ -30,6 +30,8 @@ abstract final class WidgetKeys {
   static const quotes = 'quotes';
   static const customQuotes = 'customQuotes';
   static const onlyMyQuotes = 'onlyMyQuotes';
+  static const calendarHolidays = 'calendarHolidays';
+  static const calendarGreetings = 'calendarGreetings';
   static const notifyOn = 'notifyOn';
   static const notifyMinutes = 'notifyMinutes';
   static const quoteShuffle = 'quoteShuffle';
